@@ -46,6 +46,14 @@ print("\nNull Value Counts:")
 null_counts = data.select([count(when(col(c).isNull() | isnan(c), c)).alias(c) for c in data.columns])
 null_counts.show()
 
+total_rows = data.count()
+print("\nPercentage of missing values:")
+for column in data.columns:
+    missing_count = data.filter(col(column).isNull()).count()
+    if missing_count > 0:
+        percentage = (missing_count / total_rows) * 100
+        print(f"{column}: {missing_count} rows ({percentage:.2f}%)")
+
 # Define column mappings (old_name -> new_name)
 column_mappings = {
     "Hours_Studied": "study_hours",
@@ -91,14 +99,6 @@ null_counts = renamed_data.select([count(when(col(c).isNull() | isnan(c), c)).al
                                  for c in renamed_data.columns])
 null_counts.show()
 
-total_rows = data.count()
-print("\nPercentage of missing values:")
-for column in data.columns:
-    missing_count = data.filter(col(column).isNull()).count()
-    if missing_count > 0:
-        percentage = (missing_count / total_rows) * 100
-        print(f"{column}: {missing_count} rows ({percentage:.2f}%)")
-
 processed_data = renamed_data
 
 for cat_col in categorical_columns:
@@ -120,6 +120,16 @@ for column in categorical_columns:
     # Drop original and rename temp column
     processed_data = processed_data.drop(column).withColumnRenamed(temp_col, column)
 
+total_rows = processed_data.count()
+print("\nPercentage of missing values:")
+for column in processed_data.columns:
+    missing_count = processed_data.filter(col(column).isNull()).count()
+    if missing_count > 0:
+        percentage = (missing_count / total_rows) * 100
+        print(f"{column}: {missing_count} rows ({percentage:.2f}%)")
+    else:
+        print(f"{column}: No missing values")
+
 #  Verify schema
 print("\nFinal Schema:")
 processed_data.printSchema()
@@ -127,6 +137,9 @@ processed_data.printSchema()
 # Show sample of processed data
 print("\nSample of processed data:")
 processed_data.show(5)
+
+summary = processed_data.describe()
+summary.show()
 
 # Calculate correlation matrix
 print("\nCalculating correlation matrix...")
@@ -399,6 +412,10 @@ for model_name, _ in sorted_models:
         evaluator_multi.setMetricName(metric)
         score = evaluator_multi.evaluate(predictions)
         print(f"{metric}: {score:.3f}")
+
+    # AUC (Binary Classification)
+    auc = tuning_evaluator.evaluate(predictions)
+    print(f"AUC: {auc:.3f}")
 
  # Print the best parameters for the model
 print("\nBest Parameters:")
